@@ -1,25 +1,21 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
-using System.Drawing;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Forms;
+using QuizApp.Services;
+using QuizApp.Forms;
 
-namespace OPI_TASK_GIT
+namespace QuizApp
 {
-    public partial class Form1 : Form
+    static class Program
     {
-        public Form1()
+        [STAThread]
+        static void Main()
         {
-            InitializeComponent();
-        }
+            Application.EnableVisualStyles();
+            Application.SetCompatibleTextRenderingDefault(false);
 
-        private void Form1_Load(object sender, EventArgs e)
-        {
+            DataManager.LoadData();
 
+            Application.Run(new LoginForm());
         }
     }
 }
