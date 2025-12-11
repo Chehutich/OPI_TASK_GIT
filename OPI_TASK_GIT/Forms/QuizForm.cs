@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Drawing;
-using System.Linq; // Потрібно для копіювання списків
+using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using QuizApp.Models;
@@ -11,106 +11,94 @@ namespace QuizApp.Forms
 {
     public partial class QuizForm : Form
     {
-        // --- Змінні стану ---
         private Quiz currentQuiz;
-        private List<Question> shuffledQuestions; // Список перемішаних питань
+        private List<Question> shuffledQuestions;
         private int currentQuestionIndex = 0;
         private int currentScore = 0;
 
-        // --- Змінні для Таймера ---
         private Timer questionTimer;
-        // -----------------------------------------------------
-        // ТУТ ЗМІНИЛИ ЧАС:
-        private int timePerQuestion = 30; // Секунд на питання
-        // -----------------------------------------------------
+        private int timePerQuestion = 30;
         private int timeLeft;
 
-        // --- Елементи інтерфейсу ---
         private Label lblProgress;
         private Label lblQuestionText;
         private Button[] optionButtons;
-        private ProgressBar timeProgressBar; // Смужка часу
+        private Panel questionCard; // Біла картка для питання
+        private Panel progressBack; // Фон для прогрес бару
+        private Panel progressFront; // Сам прогрес бар
 
         public QuizForm(Quiz quiz)
         {
-            // 1. Зберігаємо тест
             this.currentQuiz = quiz;
-
-            // 2. Перемішуємо питання (створюємо випадковий список)
             this.shuffledQuestions = ShuffleList(quiz.Questions);
-
             SetupUI();
+            ThemeHelper.ApplyGradient(this); // Градієнт
 
-            // 3. Налаштовуємо таймер
-            questionTimer = new Timer();
-            questionTimer.Interval = 1000; // Тікає кожну 1 секунду
+            questionTimer = new Timer { Interval = 1000 };
             questionTimer.Tick += QuestionTimer_Tick;
-
             ShowQuestion();
         }
-
-        // Порожній конструктор
         public QuizForm() { SetupUI(); }
 
         private void SetupUI()
         {
-            // Налаштування вікна
             this.Text = currentQuiz != null ? currentQuiz.Title : "Тестування";
-            this.Size = new Size(800, 650);
+            this.Size = new Size(900, 700);
             this.StartPosition = FormStartPosition.CenterScreen;
-            this.BackColor = Color.White;
-            this.FormBorderStyle = FormBorderStyle.FixedSingle;
-            this.MaximizeBox = false;
 
-            // 1. Прогрес бар (Таймер) - ЗВЕРХУ
-            timeProgressBar = new ProgressBar();
-            timeProgressBar.Location = new Point(0, 0);
-            timeProgressBar.Size = new Size(800, 10); // Тонка смужка на всю ширину
-            timeProgressBar.Style = ProgressBarStyle.Continuous;
-            timeProgressBar.ForeColor = Color.Orange;
-            this.Controls.Add(timeProgressBar);
+            // Кастомний прогрес бар (Смужка)
+            progressBack = new Panel { Location = new Point(0, 0), Size = new Size(900, 10), BackColor = Color.FromArgb(100, 255, 255, 255) };
+            this.Controls.Add(progressBack);
 
-            // 2. Текстовий прогрес "Питання 1/5"
-            lblProgress = new Label();
-            lblProgress.Text = "Питання 1 / 5";
-            lblProgress.Font = new Font("Segoe UI", 10, FontStyle.Bold);
-            lblProgress.ForeColor = Color.Gray;
-            lblProgress.Location = new Point(20, 25);
-            lblProgress.AutoSize = true;
+            progressFront = new Panel { Location = new Point(0, 0), Size = new Size(900, 10), BackColor = Color.Orange };
+            progressBack.Controls.Add(progressFront); // Вкладаємо всередину
+
+            lblProgress = new Label
+            {
+                Text = "Питання 1 / 5",
+                Font = new Font("Segoe UI", 12, FontStyle.Bold),
+                ForeColor = Color.White,
+                Location = new Point(30, 30),
+                AutoSize = true,
+                BackColor = Color.Transparent
+            };
             this.Controls.Add(lblProgress);
 
-            // 3. Текст питання
-            lblQuestionText = new Label();
-            lblQuestionText.Text = "Тут буде питання...";
-            lblQuestionText.Font = new Font("Segoe UI", 18, FontStyle.Bold);
-            lblQuestionText.ForeColor = Color.Black;
-            lblQuestionText.TextAlign = ContentAlignment.MiddleCenter;
-            lblQuestionText.AutoSize = false;
-            lblQuestionText.Size = new Size(760, 150);
-            lblQuestionText.Location = new Point(20, 60);
-            this.Controls.Add(lblQuestionText);
+            // Біла картка для питання
+            questionCard = new Panel { Location = new Point(30, 70), Size = new Size(825, 180), BackColor = Color.White };
+            this.Controls.Add(questionCard);
 
-            // 4. Кнопки (2x2)
+            lblQuestionText = new Label
+            {
+                Text = "Завантаження...",
+                Font = new Font("Segoe UI", 18, FontStyle.Bold),
+                ForeColor = ThemeHelper.PrimaryColor,
+                TextAlign = ContentAlignment.MiddleCenter,
+                AutoSize = false,
+                Dock = DockStyle.Fill // На всю картку
+            };
+            questionCard.Controls.Add(lblQuestionText);
+
+            // Кнопки
             optionButtons = new Button[4];
-            int startY = 260;
-            int btnWidth = 360;
-            int btnHeight = 120;
-            int gap = 20;
+            int startY = 280;
+            int btnWidth = 400;
+            int btnHeight = 100;
+            int gap = 25;
 
             for (int i = 0; i < 4; i++)
             {
                 optionButtons[i] = new Button();
-                optionButtons[i].Font = new Font("Segoe UI", 12);
-                optionButtons[i].FlatStyle = FlatStyle.Flat;
-                optionButtons[i].BackColor = Color.WhiteSmoke;
-                optionButtons[i].Cursor = Cursors.Hand;
-                optionButtons[i].Tag = i;
-
-                int x = (i % 2 == 0) ? 20 : 20 + btnWidth + gap;
+                int x = (i % 2 == 0) ? 30 : 30 + btnWidth + gap;
                 int y = (i < 2) ? startY : startY + btnHeight + gap;
 
                 optionButtons[i].Location = new Point(x, y);
                 optionButtons[i].Size = new Size(btnWidth, btnHeight);
+                optionButtons[i].Tag = i;
+
+                // Використовуємо наш стиль, але з білим кольором
+                ThemeHelper.StyleButton(optionButtons[i], Color.White);
+                optionButtons[i].ForeColor = ThemeHelper.PrimaryColor; // Текст фіолетовий
                 optionButtons[i].Click += OptionButton_Click;
 
                 this.Controls.Add(optionButtons[i]);
@@ -120,79 +108,76 @@ namespace QuizApp.Forms
         private void ShowQuestion()
         {
             if (currentQuestionIndex >= shuffledQuestions.Count) return;
-
             var q = shuffledQuestions[currentQuestionIndex];
 
-            // Оновлюємо UI
-            lblProgress.Text = $"Питання {currentQuestionIndex + 1} / {shuffledQuestions.Count}";
+            lblProgress.Text = $"⏳ Питання {currentQuestionIndex + 1} з {shuffledQuestions.Count}";
             lblQuestionText.Text = q.Text;
 
             for (int i = 0; i < 4; i++)
             {
                 optionButtons[i].Text = q.Options[i];
-                optionButtons[i].BackColor = Color.LightSkyBlue;
+                optionButtons[i].BackColor = Color.White;
+                optionButtons[i].ForeColor = ThemeHelper.PrimaryColor;
                 optionButtons[i].Enabled = true;
-                optionButtons[i].ForeColor = Color.Black;
             }
 
-            // ЗАПУСК ТАЙМЕРА
             timeLeft = timePerQuestion;
-            timeProgressBar.Maximum = timePerQuestion;
-            timeProgressBar.Value = timeLeft;
+            UpdateProgress();
             questionTimer.Start();
         }
 
-        // Логіка таймера: що відбувається кожну секунду
+        private void UpdateProgress()
+        {
+            // Рахуємо ширину смужки
+            float percent = (float)timeLeft / timePerQuestion;
+            progressFront.Width = (int)(this.Width * percent);
+
+            // Змінюємо колір: Зелений -> Жовтий -> Червоний
+            if (percent > 0.6) progressFront.BackColor = Color.LimeGreen;
+            else if (percent > 0.3) progressFront.BackColor = Color.Gold;
+            else progressFront.BackColor = Color.Red;
+        }
+
         private async void QuestionTimer_Tick(object sender, EventArgs e)
         {
             timeLeft--;
-            timeProgressBar.Value = timeLeft;
+            UpdateProgress();
 
             if (timeLeft <= 0)
             {
-                // ЧАС ВИЙШОВ!
                 questionTimer.Stop();
-
-                // Показуємо правильну відповідь, але бали не даємо
                 var question = shuffledQuestions[currentQuestionIndex];
-
-                // Блокуємо кнопки
                 foreach (var btn in optionButtons) btn.Enabled = false;
-
-                // Підсвічуємо правильну (щоб знали на майбутнє)
                 optionButtons[question.CorrectOptionIndex].BackColor = Color.LightGreen;
+                optionButtons[question.CorrectOptionIndex].ForeColor = Color.White;
 
-                MessageBox.Show("Час вийшов!", "Упс", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-
-                // Чекаємо трохи і йдемо далі
-                await Task.Delay(1500);
+                MessageBox.Show("⏰ Час вийшов!");
+                await Task.Delay(1000);
                 NextQuestion();
             }
         }
 
         private async void OptionButton_Click(object sender, EventArgs e)
         {
-            // 1. ОДРАЗУ ЗУПИНЯЄМО ТАЙМЕР
             questionTimer.Stop();
-
             Button clickedButton = (Button)sender;
             int selectedIndex = (int)clickedButton.Tag;
-
             var question = shuffledQuestions[currentQuestionIndex];
 
             foreach (var btn in optionButtons) btn.Enabled = false;
 
-            // 2. Перевірка
             if (selectedIndex == question.CorrectOptionIndex)
             {
-                clickedButton.BackColor = Color.LightGreen;
+                clickedButton.BackColor = Color.LimeGreen;
+                clickedButton.ForeColor = Color.White;
                 currentScore += question.Points;
             }
             else
             {
-                clickedButton.BackColor = Color.IndianRed;
+                clickedButton.BackColor = Color.Tomato;
                 clickedButton.ForeColor = Color.White;
-                optionButtons[question.CorrectOptionIndex].BackColor = Color.LightGreen;
+                optionButtons[question.CorrectOptionIndex].BackColor = Color.LimeGreen;
+                optionButtons[question.CorrectOptionIndex].ForeColor = Color.White;
             }
 
             await Task.Delay(1500);
@@ -202,58 +187,34 @@ namespace QuizApp.Forms
         private void NextQuestion()
         {
             currentQuestionIndex++;
-
-            if (currentQuestionIndex < shuffledQuestions.Count)
-            {
-                ShowQuestion();
-            }
-            else
-            {
-                FinishQuiz();
-            }
+            if (currentQuestionIndex < shuffledQuestions.Count) ShowQuestion();
+            else FinishQuiz();
         }
 
         private void FinishQuiz()
         {
-            questionTimer.Stop(); // На всяк випадок
+            questionTimer.Stop();
+            QuizResult result = new QuizResult { QuizTitle = currentQuiz.Title, Score = currentScore, DateTaken = DateTime.Now };
+            if (DataManager.CurrentUser != null) { DataManager.CurrentUser.History.Add(result); DataManager.SaveUsers(); }
 
-            QuizResult result = new QuizResult
-            {
-                QuizTitle = currentQuiz.Title,
-                Score = currentScore,
-                DateTaken = DateTime.Now
-            };
-
-            if (DataManager.CurrentUser != null)
-            {
-                DataManager.CurrentUser.History.Add(result);
-                DataManager.SaveUsers();
-            }
-
-            // Відкриваємо результати
             ResultForm resultForm = new ResultForm(currentQuiz, currentScore);
             this.Hide();
             resultForm.ShowDialog();
             this.Close();
         }
 
-        // --- МЕТОД ДЛЯ ПЕРЕМІШУВАННЯ СПИСКУ (Fisher-Yates Shuffle) ---
         private List<T> ShuffleList<T>(List<T> inputList)
         {
-            // Створюємо копію списку, щоб не псувати оригінал
             List<T> randomList = new List<T>(inputList);
-
             Random r = new Random();
             int n = randomList.Count;
-            while (n > 1)
-            {
-                n--;
-                int k = r.Next(n + 1);
-                T value = randomList[k];
-                randomList[k] = randomList[n];
-                randomList[n] = value;
-            }
+            while (n > 1) { n--; int k = r.Next(n + 1); T value = randomList[k]; randomList[k] = randomList[n]; randomList[n] = value; }
             return randomList;
+        }
+
+        private void QuizForm_Load(object sender, EventArgs e)
+        {
+
         }
     }
 }

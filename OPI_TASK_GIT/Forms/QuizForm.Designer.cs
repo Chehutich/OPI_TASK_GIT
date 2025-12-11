@@ -1,4 +1,4 @@
-﻿namespace OPI_TASK_GIT.Forms
+﻿namespace QuizApp.Forms
 {
     partial class QuizForm
     {
@@ -28,10 +28,18 @@
         /// </summary>
         private void InitializeComponent()
         {
-            this.components = new System.ComponentModel.Container();
+            this.SuspendLayout();
+            // 
+            // QuizForm
+            // 
+            this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(800, 450);
+            this.ClientSize = new System.Drawing.Size(284, 261);
+            this.Name = "QuizForm";
             this.Text = "QuizForm";
+            this.Load += new System.EventHandler(this.QuizForm_Load);
+            this.ResumeLayout(false);
+
         }
 
         #endregion
