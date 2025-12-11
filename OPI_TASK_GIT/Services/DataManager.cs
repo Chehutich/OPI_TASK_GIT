@@ -100,6 +100,7 @@ namespace QuizApp.Services
             Quizzes.Add(geo);
             Quizzes.Add(hist);
             SaveQuizzes();
+
         }
     }
 }
